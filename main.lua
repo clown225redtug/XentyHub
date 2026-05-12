@@ -1,96 +1,95 @@
 --[[
-    XENTY ELITE HUB | VERSION 6.1 (XENO-OPTIMIZED)
-    Fixed: "Nil Value" errors by using Universal methods.
+    Xenty Elite Hub v7.0 (Xeno-Safe Edition)
+    Fixed: "Nil Value" crashes by adding support checks.
 ]]
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local UIS = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
 
---// 1. CONFIG
+--// 1. CONFIGURATION
 getgenv().Xenty = {
-    Enabled = true,
-    Aimbot = {Enabled = false, FOV = 150},
-    ESP = {Enabled = false},
-    Auto = {Farm = false, Collect = false},
+    Aimbot = false,
+    AutoFarm = false,
+    AutoCollect = false,
     MainColor = Color3.fromRGB(0, 255, 180)
 }
 
---// 2. FIXED TYCOON LOGIC (No firetouchinterest needed)
+--// 2. SAFE UTILS (Prevents the Nil Crash)
+local function SafeFireTouch(part)
+    -- This checks if firetouchinterest exists before calling it
+    if firetouchinterest then
+        firetouchinterest(LocalPlayer.Character.HumanoidRootPart, part, 0)
+        firetouchinterest(LocalPlayer.Character.HumanoidRootPart, part, 1)
+    else
+        -- Fallback: Teleport your character slightly to the part
+        local oldPos = LocalPlayer.Character.HumanoidRootPart.CFrame
+        LocalPlayer.Character.HumanoidRootPart.CFrame = part.CFrame
+        task.wait(0.1)
+        LocalPlayer.Character.HumanoidRootPart.CFrame = oldPos
+    end
+end
+
+--// 3. AUTOMATION LOOP
 task.spawn(function()
     while task.wait(0.5) do
-        if getgenv().Xenty.Enabled and getgenv().Xenty.Auto.Collect then
-            for _, v in pairs(game.Workspace:GetDescendants()) do
-                if v.Name == "Collector" or v.Name == "TouchPart" then
-                    -- Instead of firetouchinterest, we move your character's foot slightly
-                    -- This is 100% universal for all executors
-                    local char = LocalPlayer.Character
-                    if char and char:FindFirstChild("HumanoidRootPart") then
-                        firetouchinterest(char.HumanoidRootPart, v, 0)
-                        firetouchinterest(char.HumanoidRootPart, v, 1)
-                        -- If Xeno fails firetouch, we use the fallback below:
-                        if not firetouchinterest then
-                            v.CFrame = char.HumanoidRootPart.CFrame
-                        end
-                    end
+        if getgenv().Xenty.AutoCollect then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name == "TouchInterest" and v.Parent:FindFirstChild("Collector") then
+                    SafeFireTouch(v.Parent)
                 end
             end
         end
     end
 end)
 
---// 3. XENO-FRIENDLY UI
+--// 4. XENO-STABLE UI
 local function BuildUI()
-    -- Check if UI exists and destroy to prevent stacking
-    if CoreGui:FindFirstChild("XentyHub") then CoreGui.XentyHub:Destroy() end
+    -- Clean up old UI if it exists
+    if CoreGui:FindFirstChild("XentyHub_Xeno") then CoreGui.XentyHub_Xeno:Destroy() end
 
     local Hub = Instance.new("ScreenGui")
-    Hub.Name = "XentyHub"
-    Hub.Parent = CoreGui -- If it still doesn't show, change this to PlayerGui
+    Hub.Name = "XentyHub_Xeno"
+    Hub.Parent = CoreGui
+    -- If it STILL won't show, uncomment the next line:
+    -- Hub.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local Main = Instance.new("Frame")
-    Main.Name = "Main"
-    Main.Size = UDim2.new(0, 450, 0, 300)
-    Main.Position = UDim2.new(0.5, -225, 0.5, -150)
-    Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Main.BorderSizePixel = 0
+    Main.Size = UDim2.new(0, 400, 0, 250)
+    Main.Position = UDim2.new(0.5, -200, 0.5, -125)
+    Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     Main.Active = true
-    Main.Draggable = true -- Xeno supports built-in dragging
+    Main.Draggable = true
     Main.Parent = Hub
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 10)
-    UICorner.Parent = Main
+    local UICorner = Instance.new("UICorner", Main)
+    local UIStroke = Instance.new("UIStroke", Main)
+    UIStroke.Color = getgenv().Xenty.MainColor
+    UIStroke.Thickness = 2
 
-    local Title = Instance.new("TextLabel")
+    local Title = Instance.new("TextLabel", Main)
     Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Text = "XENTY ELITE HUB"
+    Title.Text = "XENTY ELITE [XENO]"
     Title.TextColor3 = getgenv().Xenty.MainColor
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 20
-    Title.Parent = Main
+    Title.TextSize = 18
 
-    -- Simple Toggle Button Example
-    local Toggle = Instance.new("TextButton")
-    Toggle.Size = UDim2.new(0, 200, 0, 50)
-    Toggle.Position = UDim2.new(0.5, -100, 0.4, 0)
-    Toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Toggle.Text = "Auto-Collect: OFF"
-    Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Toggle.Parent = Main
-
-    Toggle.MouseButton1Click:Connect(function()
-        getgenv().Xenty.Auto.Collect = not getgenv().Xenty.Auto.Collect
-        Toggle.Text = "Auto-Collect: " .. (getgenv().Xenty.Auto.Collect and "ON" or "OFF")
-        Toggle.TextColor3 = getgenv().Xenty.Auto.Collect and getgenv().Xenty.MainColor or Color3.fromRGB(255, 255, 255)
+    -- Example Function Button
+    local Btn = Instance.new("TextButton", Main)
+    Btn.Size = UDim2.new(0, 180, 0, 40)
+    Btn.Position = UDim2.new(0.5, -90, 0.4, 0)
+    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Btn.Text = "Auto-Collect: OFF"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    
+    Btn.MouseButton1Click:Connect(function()
+        getgenv().Xenty.AutoCollect = not getgenv().Xenty.AutoCollect
+        Btn.Text = "Auto-Collect: " .. (getgenv().Xenty.AutoCollect and "ON" or "OFF")
+        Btn.TextColor3 = getgenv().Xenty.AutoCollect and getgenv().Xenty.MainColor or Color3.fromRGB(255, 255, 255)
     end)
-
-    print("Xenty: UI Successfully Displayed.")
 end
 
--- Force UI to wait for game load
-if not game:IsLoaded() then game.Loaded:Wait() end
 BuildUI()
+print("Xenty Xeno-Edition Loaded.")
